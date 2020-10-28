@@ -9,7 +9,7 @@ import (
 	"log"
 	"time"
 
-	"alexandra.dk/D2D_Agent/model"
+	"github.com/alexandrainst/agentlogic"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -33,7 +33,7 @@ var SelfId peer.ID
 var ps *pubsub.PubSub
 
 //vars for registration
-var myType model.AgentType
+var myType agentlogic.AgentType
 var discoveryPath string
 var statePath string
 var reorganizationPath string
@@ -43,7 +43,7 @@ var StateChannel = make(chan *Message, BufferSize)
 var ReorganizationChannel = make(chan *Message, BufferSize)
 var MissionChannel = make(chan *Message, BufferSize)
 
-func InitD2DCommuncation(agentType model.AgentType) {
+func InitD2DCommuncation(agentType agentlogic.AgentType) {
 	myType = agentType
 	ctx := context.Background()
 
@@ -94,7 +94,7 @@ func InitCommunicationType(path string, messageType MessageType) {
 	go cr.readMessages()
 }
 
-func SendMission(senderId string, mission *model.Mission, channelPath string) error {
+func SendMission(senderId string, mission *agentlogic.Mission, channelPath string) error {
 
 	channel := channels[channelPath]
 	if channel == nil {
@@ -117,7 +117,7 @@ func SendMission(senderId string, mission *model.Mission, channelPath string) er
 	return nil
 }
 
-func SendState(state *model.State) {
+func SendState(state *agentlogic.State) {
 	//log.Println("Stating me")
 	//state channel
 	channel := channels[statePath]
@@ -138,7 +138,7 @@ func SendState(state *model.State) {
 
 }
 
-func AnnounceSelf(metadata *model.Agent) {
+func AnnounceSelf(metadata *agentlogic.Agent) {
 	//log.Println("Announce:")
 	// log.Println(*metadata)
 	//registration channel
@@ -147,7 +147,7 @@ func AnnounceSelf(metadata *model.Agent) {
 	m := Message{
 		MsgType:          DiscoveryMessageType,
 		DiscoveryContent: *metadata,
-		SenderId:         metadata.ID,
+		SenderId:         metadata.UUID,
 		SenderType:       myType,
 	}
 	//log.Println(m)
@@ -159,7 +159,7 @@ func AnnounceSelf(metadata *model.Agent) {
 	channel.topic.Publish(channel.ctx, msgBytes)
 }
 
-func SendReorganization(metadata model.Agent, selfId string) {
+func SendReorganization(metadata agentlogic.Agent, selfId string) {
 	//log.Printf("Discovered lost agent with id %v. Notifying network \n", metadata.ID)
 	// log.Println(*metadata)
 	//registration channel

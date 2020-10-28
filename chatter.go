@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"log"
 
-	"alexandra.dk/D2D_Agent/model"
+	"github.com/alexandrainst/agentlogic"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
@@ -43,11 +43,11 @@ type Channel struct {
 // Message gets converted to/from JSON and sent in the body of pubsub messages.
 type Message struct {
 	MsgType          MessageType
-	DiscoveryContent model.Agent
-	StateContent     model.State
-	MissionContent   model.Mission
+	DiscoveryContent agentlogic.Agent
+	StateContent     agentlogic.State
+	MissionContent   agentlogic.Mission
 	SenderId         string
-	SenderType       model.AgentType
+	SenderType       agentlogic.AgentType
 }
 
 func JoinPath(ctx context.Context, ps *pubsub.PubSub, selfID peer.ID, path string, roomType MessageType) (*Channel, error) {
@@ -81,11 +81,11 @@ func JoinPath(ctx context.Context, ps *pubsub.PubSub, selfID peer.ID, path strin
 	return ch, nil
 }
 
-func ClosePath(disconnectedAgent model.Agent, messageType MessageType) {
+func ClosePath(disconnectedAgent agentlogic.Agent, messageType MessageType) {
 	var removeId string
 	switch messageType {
 	case MissionMessageType:
-		removeId = disconnectedAgent.ID
+		removeId = disconnectedAgent.UUID
 	}
 	removeChannel := channels[removeId]
 	if removeChannel == nil {

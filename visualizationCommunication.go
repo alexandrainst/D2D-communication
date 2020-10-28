@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"log"
 
-	"alexandra.dk/D2D_Agent/model"
+	"github.com/alexandrainst/agentlogic"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
@@ -25,9 +25,9 @@ type VisualizationMessage struct {
 	MsgType      MessageType
 	ContentType  MessageType
 	Content      Message
-	StateMessage model.State
+	StateMessage agentlogic.State
 	SenderId     string
-	SenderType   model.AgentType
+	SenderType   agentlogic.AgentType
 }
 
 const VisualizationMessageType = -12
