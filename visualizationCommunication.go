@@ -33,7 +33,7 @@ type VisualizationMessage struct {
 const VisualizationMessageType = -12
 const visPath = "D2D_visualization"
 
-var ChannelVisualization = make(chan *Message, BufferSize)
+var ChannelVisualization = make(chan Message, BufferSize)
 var visChannel *VisualizationChannel
 
 //var myType model.AgentType
@@ -46,7 +46,7 @@ func sendingVisualizaMessage(channel *VisualizationChannel) {
 			vm := VisualizationMessage{
 				MsgType: VisualizationMessageType,
 				//ContentType: msg.MessageMeta.MsgType,
-				Content: *msg,
+				Content: msg,
 				//SenderId:    msg.SenderId,
 				SenderType: myType,
 			}
