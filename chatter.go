@@ -40,14 +40,35 @@ type Channel struct {
 	Close    bool
 }
 
+type Message interface {
+	private()
+}
+
+func (m DiscoveryMessage) private() {}
+func (m StateMessage) private()     {}
+func (m MissionMessage) private()   {}
+
 // Message gets converted to/from JSON and sent in the body of pubsub messages.
-type Message struct {
-	MsgType          MessageType
-	DiscoveryContent agentlogic.Agent
-	StateContent     agentlogic.State
-	MissionContent   agentlogic.Mission
-	SenderId         string
-	SenderType       agentlogic.AgentType
+// Message gets converted to/from JSON and sent in the body of pubsub messages.
+type DiscoveryMessage struct {
+	MessageMeta MessageMeta
+	Content     agentlogic.Agent
+}
+
+type StateMessage struct {
+	MessageMeta MessageMeta
+	Content     agentlogic.State
+}
+
+type MissionMessage struct {
+	MessageMeta MessageMeta
+	Content     agentlogic.Mission
+}
+
+type MessageMeta struct {
+	MsgType    MessageType
+	SenderId   string
+	SenderType agentlogic.AgentType
 }
 
 func JoinPath(ctx context.Context, ps *pubsub.PubSub, selfID peer.ID, path string, roomType MessageType) (*Channel, error) {
@@ -112,16 +133,33 @@ func (cr *Channel) readLoop() {
 		if msg.ReceivedFrom == cr.self {
 			continue
 		}
-		cm := new(Message)
+		var cm Message
+
+		switch cr.roomType {
+
+		case StateMessageType:
+
+			cm = new(StateMessage)
+			break
+		case MissionMessageType:
+
+			cm = new(MissionMessage)
+			break
+		default:
+			cm = new(DiscoveryMessage)
+		}
+		//cm := new(Message)
 		err = json.Unmarshal(msg.Data, cm)
 		if err != nil {
 			log.Println("eeerrrr")
 			log.Println(err)
+			//log.Println(msg)
 			continue
 		}
 		//log.Println("messages received")
 		// send valid messages onto the Messages channel
-
-		cr.Messages <- cm
+		//fmt.Println(reflect.TypeOf(cm).String())
+		//fmt.Println(cm)
+		cr.Messages <- &cm
 	}
 }

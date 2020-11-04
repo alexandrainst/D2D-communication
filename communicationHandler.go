@@ -37,11 +37,13 @@ var myType agentlogic.AgentType
 var discoveryPath string
 var statePath string
 var reorganizationPath string
+var recalculationPath string
 
-var DiscoveryChannel = make(chan *Message, BufferSize)
-var StateChannel = make(chan *Message, BufferSize)
-var ReorganizationChannel = make(chan *Message, BufferSize)
-var MissionChannel = make(chan *Message, BufferSize)
+var DiscoveryChannel = make(chan *DiscoveryMessage, BufferSize)
+var StateChannel = make(chan *StateMessage, BufferSize)
+var ReorganizationChannel = make(chan *DiscoveryMessage, BufferSize)
+var RecalculationChannel = make(chan *DiscoveryMessage, BufferSize)
+var MissionChannel = make(chan *MissionMessage, BufferSize)
 
 func InitD2DCommuncation(agentType agentlogic.AgentType) {
 	myType = agentType
@@ -85,6 +87,9 @@ func InitCommunicationType(path string, messageType MessageType) {
 	case ReorganizationMessageType:
 		reorganizationPath = path
 		break
+	case RecalculatorMessageType:
+		recalculationPath = path
+		break
 	}
 	ctx := context.Background()
 	cr, err := JoinPath(ctx, ps, SelfId, path, messageType)
@@ -100,11 +105,13 @@ func SendMission(senderId string, mission *agentlogic.Mission, channelPath strin
 	if channel == nil {
 		return errors.New("channel not found with path: " + channelPath)
 	}
-	m := Message{
-		MsgType:        MissionMessageType,
-		MissionContent: *mission,
-		SenderId:       senderId,
-		SenderType:     myType,
+	m := MissionMessage{
+		MessageMeta: MessageMeta{MsgType: MissionMessageType, SenderId: senderId, SenderType: myType},
+		Content:     *mission,
+		// MsgType:        MissionMessageType,
+		// MissionContent: *mission,
+		// SenderId:       senderId,
+		// SenderType:     myType,
 	}
 
 	msgBytes, err := json.Marshal(m)
@@ -121,11 +128,13 @@ func SendState(state *agentlogic.State) {
 	//log.Println("Stating me")
 	//state channel
 	channel := channels[statePath]
-	m := Message{
-		MsgType:      StateMessageType,
-		StateContent: *state,
-		SenderId:     state.ID,
-		SenderType:   myType,
+	m := StateMessage{
+		MessageMeta: MessageMeta{MsgType: MissionMessageType, SenderId: state.ID, SenderType: myType},
+		Content:     *state,
+		// MsgType:      StateMessageType,
+		// StateContent: *state,
+		// SenderId:     state.ID,
+		// SenderType:   myType,
 	}
 	// log.Println("state msg:")
 	// log.Println(m)
@@ -144,11 +153,31 @@ func AnnounceSelf(metadata *agentlogic.Agent) {
 	//registration channel
 	channel := channels[discoveryPath]
 
-	m := Message{
-		MsgType:          DiscoveryMessageType,
-		DiscoveryContent: *metadata,
-		SenderId:         metadata.UUID,
-		SenderType:       myType,
+	m := DiscoveryMessage{
+		MessageMeta: MessageMeta{MsgType: MissionMessageType, SenderId: metadata.UUID, SenderType: myType},
+		Content:     *metadata,
+		// MsgType:          DiscoveryMessageType,
+		// DiscoveryContent: *metadata,
+		// SenderId:         metadata.UUID,
+		// SenderType:       myType,
+	}
+
+	msgBytes, err := json.Marshal(m)
+
+	if err != nil {
+		panic(err)
+	}
+	channel.topic.Publish(channel.ctx, msgBytes)
+}
+
+func SendReorganization(metadata agentlogic.Agent, selfId string) {
+
+	//registration channel
+	channel := channels[reorganizationPath]
+
+	m := DiscoveryMessage{
+		MessageMeta: MessageMeta{MsgType: ReorganizationMessageType, SenderId: selfId, SenderType: myType},
+		Content:     metadata,
 	}
 	//log.Println(m)
 	msgBytes, err := json.Marshal(m)
@@ -159,19 +188,17 @@ func AnnounceSelf(metadata *agentlogic.Agent) {
 	channel.topic.Publish(channel.ctx, msgBytes)
 }
 
-func SendReorganization(metadata agentlogic.Agent, selfId string) {
-	//log.Printf("Discovered lost agent with id %v. Notifying network \n", metadata.ID)
-	// log.Println(*metadata)
-	//registration channel
-	channel := channels[reorganizationPath]
+func SendRecalculation(metadata agentlogic.Agent, selfId string) {
+	log.Println("send recalc message on " + recalculationPath)
 
-	m := Message{
-		MsgType:          ReorganizationMessageType,
-		DiscoveryContent: metadata,
-		SenderId:         selfId,
-		SenderType:       myType,
+	//registration channel
+	channel := channels[recalculationPath]
+
+	m := DiscoveryMessage{
+		MessageMeta: MessageMeta{MsgType: RecalculatorMessageType, SenderId: selfId, SenderType: myType},
+		Content:     metadata,
 	}
-	//log.Println(m)
+	log.Println(m)
 	msgBytes, err := json.Marshal(m)
 
 	if err != nil {
@@ -217,16 +244,24 @@ func (cr *Channel) readMessages() {
 		}
 		switch cr.roomType {
 		case DiscoveryMessageType:
-			DiscoveryChannel <- message
+			msg := (*message).(*DiscoveryMessage)
+			DiscoveryChannel <- msg
 			break
 		case StateMessageType:
-			StateChannel <- message
+			msg := (*message).(*StateMessage)
+			StateChannel <- msg
 			break
 		case ReorganizationMessageType:
-			ReorganizationChannel <- message
+			msg := (*message).(*DiscoveryMessage)
+			ReorganizationChannel <- msg
 			break
 		case MissionMessageType:
-			MissionChannel <- message
+			msg := (*message).(*MissionMessage)
+			MissionChannel <- msg
+			break
+		case RecalculatorMessageType:
+			msg := (*message).(*DiscoveryMessage)
+			RecalculationChannel <- msg
 			break
 		}
 	}

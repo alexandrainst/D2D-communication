@@ -44,11 +44,11 @@ func sendingVisualizaMessage(channel *VisualizationChannel) {
 			msg := <-ChannelVisualization
 			//log.Println("Sending viz message")
 			vm := VisualizationMessage{
-				MsgType:     VisualizationMessageType,
-				ContentType: msg.MsgType,
-				Content:     *msg,
-				SenderId:    msg.SenderId,
-				SenderType:  myType,
+				MsgType: VisualizationMessageType,
+				//ContentType: msg.MessageMeta.MsgType,
+				Content: *msg,
+				//SenderId:    msg.SenderId,
+				SenderType: myType,
 			}
 			msgBytes, err := json.Marshal(vm)
 
