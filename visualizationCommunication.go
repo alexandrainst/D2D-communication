@@ -30,7 +30,7 @@ type VisualizationMessage struct {
 	SenderType   agentlogic.AgentType
 }
 
-const VisualizationMessageType = -12
+const VisualizationMessageType = -13
 const visPath = "D2D_visualization"
 
 var ChannelVisualization = make(chan Message, BufferSize)
