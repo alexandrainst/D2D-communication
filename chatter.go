@@ -49,7 +49,7 @@ func (m StateMessage) private()     {}
 func (m MissionMessage) private()   {}
 
 // Message gets converted to/from JSON and sent in the body of pubsub messages.
-// Message gets converted to/from JSON and sent in the body of pubsub messages.
+
 type DiscoveryMessage struct {
 	MessageMeta MessageMeta
 	Content     agentlogic.Agent
