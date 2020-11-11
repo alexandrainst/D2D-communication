@@ -8,6 +8,7 @@ import (
 	"github.com/alexandrainst/agentlogic"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/paulmach/orb"
 )
 
 type VisualizationChannel struct {
@@ -29,6 +30,7 @@ type VisualizationMessage struct {
 	MissionMessage   agentlogic.Mission
 	SenderId         string
 	SenderType       agentlogic.AgentType
+	MissionBound     orb.Bound
 }
 
 const VisualizationMessageType = -13
