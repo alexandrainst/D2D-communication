@@ -115,10 +115,6 @@ func SendMission(senderId string, mission *agentlogic.Mission, channelPath strin
 	m := MissionMessage{
 		MessageMeta: MessageMeta{MsgType: MissionMessageType, SenderId: senderId, SenderType: myType},
 		Content:     *mission,
-		// MsgType:        MissionMessageType,
-		// MissionContent: *mission,
-		// SenderId:       senderId,
-		// SenderType:     myType,
 	}
 
 	msgBytes, err := json.Marshal(m)
@@ -140,10 +136,6 @@ func SendState(state *agentlogic.State) {
 	m := StateMessage{
 		MessageMeta: MessageMeta{MsgType: MissionMessageType, SenderId: state.ID, SenderType: myType},
 		Content:     *state,
-		// MsgType:      StateMessageType,
-		// StateContent: *state,
-		// SenderId:     state.ID,
-		// SenderType:   myType,
 	}
 	// log.Println("state msg:")
 	// log.Println(m)
@@ -166,10 +158,6 @@ func AnnounceSelf(metadata *agentlogic.Agent) {
 	m := DiscoveryMessage{
 		MessageMeta: MessageMeta{MsgType: MissionMessageType, SenderId: metadata.UUID, SenderType: myType},
 		Content:     *metadata,
-		// MsgType:          DiscoveryMessageType,
-		// DiscoveryContent: *metadata,
-		// SenderId:         metadata.UUID,
-		// SenderType:       myType,
 	}
 
 	msgBytes, err := json.Marshal(m)
