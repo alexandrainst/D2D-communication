@@ -95,9 +95,11 @@ func JoinPath(ctx context.Context, ps *pubsub.PubSub, selfID peer.ID, path strin
 		Close:    false,
 		Messages: make(chan *Message, BufferSize),
 	}
+	channelsMux.Lock()
 	channels[path] = ch
+	channelsMux.Unlock()
 	// start reading messages from the subscription in a loop
-	log.Println("Channel with path " + path + " joined, read loop started")
+	//log.Println("Channel with path " + path + " joined, read loop started")
 	go ch.readLoop()
 	return ch, nil
 }
@@ -108,7 +110,9 @@ func ClosePath(disconnectedAgent agentlogic.Agent, messageType MessageType) {
 	case MissionMessageType:
 		removeId = disconnectedAgent.UUID
 	}
+	channelsMux.Lock()
 	removeChannel := channels[removeId]
+	channelsMux.Unlock()
 	if removeChannel == nil {
 		log.Println("Trying to close a channel with id: " + removeId + ", but channel does not exist. Returning")
 		return
@@ -117,7 +121,9 @@ func ClosePath(disconnectedAgent agentlogic.Agent, messageType MessageType) {
 
 	removeChannel.sub.Cancel()
 	removeChannel.topic.Close()
+	channelsMux.Lock()
 	delete(channels, removeId)
+	channelsMux.Unlock()
 }
 
 // readLoop pulls messages from the pubsub topic and pushes them onto the Messages channel.

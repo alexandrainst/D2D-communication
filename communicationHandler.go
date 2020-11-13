@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/alexandrainst/agentlogic"
@@ -27,6 +28,8 @@ const DiscoveryInterval = time.Hour
 const DiscoveryServiceTag = "D2D_Comunidad"
 
 var channels = make(map[string]*Channel)
+
+var channelsMux = &sync.Mutex{}
 
 var SelfId peer.ID
 
@@ -72,11 +75,14 @@ func InitD2DCommuncation(agentType agentlogic.AgentType) {
 }
 
 func InitCommunicationType(path string, messageType MessageType) {
+	channelsMux.Lock()
 	if channels[path] != nil {
 		//channel already created - ignoring
-		log.Println("channel with path: " + path + " already in list. returning")
+		//log.Println("channel with path: " + path + " already in list. returning")
+		channelsMux.Unlock()
 		return
 	}
+	channelsMux.Unlock()
 	switch messageType {
 	case StateMessageType:
 		statePath = path
@@ -100,8 +106,9 @@ func InitCommunicationType(path string, messageType MessageType) {
 }
 
 func SendMission(senderId string, mission *agentlogic.Mission, channelPath string) error {
-
+	channelsMux.Lock()
 	channel := channels[channelPath]
+	channelsMux.Unlock()
 	if channel == nil {
 		return errors.New("channel not found with path: " + channelPath)
 	}
@@ -127,7 +134,9 @@ func SendMission(senderId string, mission *agentlogic.Mission, channelPath strin
 func SendState(state *agentlogic.State) {
 	//log.Println("Stating me")
 	//state channel
+	channelsMux.Lock()
 	channel := channels[statePath]
+	channelsMux.Unlock()
 	m := StateMessage{
 		MessageMeta: MessageMeta{MsgType: MissionMessageType, SenderId: state.ID, SenderType: myType},
 		Content:     *state,
@@ -151,8 +160,9 @@ func AnnounceSelf(metadata *agentlogic.Agent) {
 	//log.Println("Announce:")
 	// log.Println(*metadata)
 	//registration channel
+	channelsMux.Lock()
 	channel := channels[discoveryPath]
-
+	channelsMux.Unlock()
 	m := DiscoveryMessage{
 		MessageMeta: MessageMeta{MsgType: MissionMessageType, SenderId: metadata.UUID, SenderType: myType},
 		Content:     *metadata,
@@ -173,8 +183,9 @@ func AnnounceSelf(metadata *agentlogic.Agent) {
 func SendReorganization(metadata agentlogic.Agent, selfId string) {
 
 	//registration channel
+	channelsMux.Lock()
 	channel := channels[reorganizationPath]
-
+	channelsMux.Unlock()
 	m := DiscoveryMessage{
 		MessageMeta: MessageMeta{MsgType: ReorganizationMessageType, SenderId: selfId, SenderType: myType},
 		Content:     metadata,
@@ -189,11 +200,12 @@ func SendReorganization(metadata agentlogic.Agent, selfId string) {
 }
 
 func SendRecalculation(metadata agentlogic.Agent, selfId string) {
-	log.Println("send recalc message on " + recalculationPath)
+	log.Println(selfId + ": send recalc message on " + recalculationPath)
 
 	//registration channel
+	channelsMux.Lock()
 	channel := channels[recalculationPath]
-
+	channelsMux.Unlock()
 	m := DiscoveryMessage{
 		MessageMeta: MessageMeta{MsgType: RecalculatorMessageType, SenderId: selfId, SenderType: myType},
 		Content:     metadata,
@@ -235,7 +247,7 @@ func createHost() (host.Host, error) {
 }
 
 func (cr *Channel) readMessages() {
-	log.Println("Starting cr.readMessages() with path: " + cr.path)
+	//log.Println("Starting cr.readMessages() with path: " + cr.path)
 	for {
 		message := <-cr.Messages
 		if cr.Close {
