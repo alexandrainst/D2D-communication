@@ -47,6 +47,7 @@ var StateChannel = make(chan *StateMessage, BufferSize)
 var ReorganizationChannel = make(chan *DiscoveryMessage, BufferSize)
 var RecalculationChannel = make(chan *DiscoveryMessage, BufferSize)
 var MissionChannel = make(chan *MissionMessage, BufferSize)
+var GoalChannel = make(chan *GoalMessage, BufferSize)
 
 func InitD2DCommuncation(agentType agentlogic.AgentType) {
 	myType = agentType
@@ -75,6 +76,7 @@ func InitD2DCommuncation(agentType agentlogic.AgentType) {
 }
 
 func InitCommunicationType(path string, messageType MessageType) {
+	//log.Println("PATH: " + path)
 	channelsMux.Lock()
 	if channels[path] != nil {
 		//channel already created - ignoring
@@ -109,14 +111,45 @@ func SendMission(senderId string, mission *agentlogic.Mission, channelPath strin
 	channelsMux.Lock()
 	channel := channels[channelPath]
 	channelsMux.Unlock()
-	if channel == nil {
-		return errors.New("channel not found with path: " + channelPath)
-	}
+
 	m := MissionMessage{
 		MessageMeta: MessageMeta{MsgType: MissionMessageType, SenderId: senderId, SenderType: myType},
 		Content:     *mission,
 	}
+	if senderId == channelPath {
+		MissionChannel <- &m
+		return nil
+	}
+	if channel == nil {
 
+		return errors.New("channel not found with path: " + channelPath)
+	}
+	msgBytes, err := json.Marshal(m)
+
+	if err != nil {
+		return err
+	}
+	channel.topic.Publish(channel.ctx, msgBytes)
+
+	return nil
+}
+
+func SendGoalFound(senderId string, goal agentlogic.Goal, posiition agentlogic.Vector, channelPath string) error {
+	channelsMux.Lock()
+	channel := channels[channelPath]
+	channelsMux.Unlock()
+	if channel == nil {
+		return errors.New("channel not found with path: " + channelPath)
+	}
+	m := GoalMessage{
+		MessageMeta: MessageMeta{MsgType: GoalMessageType, SenderId: senderId, SenderType: myType},
+		Content:     goal,
+		Position:    posiition,
+	}
+
+	if senderId == channelPath {
+		GoalChannel <- &m
+	}
 	msgBytes, err := json.Marshal(m)
 
 	if err != nil {
@@ -169,7 +202,7 @@ func AnnounceSelf(metadata *agentlogic.Agent) {
 }
 
 func SendReorganization(metadata agentlogic.Agent, selfId string) {
-
+	log.Println("from: " + selfId + " about:" + metadata.UUID)
 	//registration channel
 	channelsMux.Lock()
 	channel := channels[reorganizationPath]
@@ -263,6 +296,9 @@ func (cr *Channel) readMessages() {
 			msg := (*message).(*DiscoveryMessage)
 			RecalculationChannel <- msg
 			break
+		case GoalMessageType:
+			msg := (*message).(*GoalMessage)
+			GoalChannel <- msg
 		}
 	}
 }

@@ -21,6 +21,7 @@ const (
 	MissionMessageType        = 2
 	ReorganizationMessageType = 3
 	RecalculatorMessageType   = 4
+	GoalMessageType           = 5
 )
 
 // Channel represents a subscription to a single PubSub topic. Messages
@@ -47,6 +48,7 @@ type Message interface {
 func (m DiscoveryMessage) private() {}
 func (m StateMessage) private()     {}
 func (m MissionMessage) private()   {}
+func (m GoalMessage) private()      {}
 
 // Message gets converted to/from JSON and sent in the body of pubsub messages.
 
@@ -63,6 +65,13 @@ type StateMessage struct {
 type MissionMessage struct {
 	MessageMeta MessageMeta
 	Content     agentlogic.Mission
+}
+
+type GoalMessage struct {
+	MessageMeta MessageMeta
+	Content     agentlogic.Goal
+	Position    agentlogic.Vector
+	Poi         string
 }
 
 type MessageMeta struct {
@@ -150,6 +159,10 @@ func (cr *Channel) readLoop() {
 		case MissionMessageType:
 
 			cm = new(MissionMessage)
+			break
+		case GoalMessageType:
+
+			cm = new(GoalMessage)
 			break
 		default:
 			cm = new(DiscoveryMessage)

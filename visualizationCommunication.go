@@ -28,10 +28,18 @@ type VisualizationMessage struct {
 	DiscoveryMessage agentlogic.Agent
 	StateMessage     agentlogic.State
 	MissionMessage   agentlogic.Mission
+	GoalMessage      GoalMessage
 	SenderId         string
 	SenderType       agentlogic.AgentType
 	MissionBound     orb.Bound
 }
+
+// type VisGoalMessage struct {
+// 	AgentId  string
+// 	MsgType  MessageType
+// 	Position agentlogic.Vector
+// 	Poi      string
+// }
 
 const VisualizationMessageType = -13
 const VisualizationAgentType = -133
@@ -39,6 +47,10 @@ const visPath = "D2D_visualization"
 
 var ChannelVisualization = make(chan Message, BufferSize)
 var visChannel *VisualizationChannel
+
+func GetVizChannel() *VisualizationChannel {
+	return visChannel
+}
 
 func sendingVisualizaMessage(channel *VisualizationChannel) {
 
@@ -48,31 +60,31 @@ func sendingVisualizaMessage(channel *VisualizationChannel) {
 
 			vm := VisualizationMessage{
 				MsgType: VisualizationMessageType,
-				// ContentType:  assertedMessage.MessageMeta.MsgType,
-				// StateMessage: assertedMessage,
-				// SenderId:     assertedMessage.MessageMeta.SenderId,
-				//SenderType: myType,
 			}
 
 			switch msg.(type) {
 			case *StateMessage:
 				assertedMessage := *msg.(*StateMessage)
-				vm.ContentType = StateMessageType
+				vm.ContentType = assertedMessage.MessageMeta.MsgType
 				vm.SenderId = assertedMessage.MessageMeta.SenderId
 				vm.StateMessage = assertedMessage.Content
 				vm.SenderType = assertedMessage.MessageMeta.SenderType
 			case *MissionMessage:
 				assertedMessage := *msg.(*MissionMessage)
-				vm.ContentType = MissionMessageType
+				vm.ContentType = assertedMessage.MessageMeta.MsgType
 				vm.SenderId = assertedMessage.MessageMeta.SenderId
 				vm.MissionMessage = assertedMessage.Content
 				vm.SenderType = assertedMessage.MessageMeta.SenderType
 			case *DiscoveryMessage:
 				assertedMessage := *msg.(*DiscoveryMessage)
-				vm.ContentType = DiscoveryMessageType
+				vm.ContentType = assertedMessage.MessageMeta.MsgType
 				vm.SenderId = assertedMessage.MessageMeta.SenderId
 				vm.DiscoveryMessage = assertedMessage.Content
 				vm.SenderType = assertedMessage.MessageMeta.SenderType
+				if vm.ContentType == RecalculatorMessageType {
+					log.Println("VIZ: from: " + vm.SenderId + " about: " + vm.DiscoveryMessage.UUID)
+				}
+
 			default:
 				log.Println("unknown message")
 				continue
@@ -99,6 +111,23 @@ func InitVisualizationMessages(subscribe bool) *VisualizationChannel {
 	sendingVisualizaMessage(ch)
 
 	return ch
+}
+
+func SendVizGoal(goal GoalMessage) {
+	vm := VisualizationMessage{
+		MsgType:     VisualizationMessageType,
+		ContentType: GoalMessageType,
+		GoalMessage: goal,
+		SenderType:  VisualizationAgentType,
+	}
+
+	msgBytes, err := json.Marshal(vm)
+
+	if err != nil {
+		panic(err)
+	}
+	visChannel.topic.Publish(visChannel.ctx, msgBytes)
+
 }
 
 func joinVisualizationComm(ctx context.Context, ps *pubsub.PubSub, selfID peer.ID, path string, roomType MessageType, subscribePath bool) (*VisualizationChannel, error) {
